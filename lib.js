@@ -49,22 +49,34 @@ module.exports.authenticate = (params) => {
         throw new Error('invalid token');
     }
 
+
+
+    var emailid;
+    if (decoded.payload["https://bureau.id"] !== undefined && decoded.payload["https://bureau.id"].email !== undefined ) {
+        emailid = decoded.payload["https://bureau.id"].email;
+    }
+    else {
+        emailid = "";
+    }
+
     const getSigningKey = util.promisify(client.getSigningKey);
     return getSigningKey(decoded.header.kid)
         .then((key) => {
             const signingKey = key.publicKey || key.rsaPublicKey;
             return jwt.verify(token, signingKey, jwtOptions);
         })
-        .then((decoded)=> ({
+        .then((decoded) => ({
             principalId: decoded.sub,
             policyDocument: getPolicyDocument('Allow', params.methodArn),
-            context: { scope: decoded.scope }
+            context: {
+                scope: decoded.scope, email: emailid
+            }
         }));
 }
 
- const client = jwksClient({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 10, // Default value
-        jwksUri: process.env.JWKS_URI
-  });
+const client = jwksClient({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10, // Default value
+    jwksUri: process.env.JWKS_URI
+});
